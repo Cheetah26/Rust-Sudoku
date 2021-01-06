@@ -16,6 +16,43 @@ struct Data {
     solution: [[u8; 9]; 9],
 }
 
+impl Data {
+    pub fn move_up(&mut self) {
+        if self.y > 1 {
+            self.y -= 2;
+        }
+    }
+    pub fn move_down(&mut self) {
+        if self.y < 16 {
+            self.y += 2;
+        }
+    }
+    pub fn move_left(&mut self) {
+        if self.x > 4 {
+            self.x -= 4;
+        }
+    }
+    pub fn move_right(&mut self) {
+        if self.x < 34 {
+            self.x += 4;
+        }
+    }
+    pub fn set_number(&mut self, n: u8) {
+        if n == 0 {
+            plot(self.x, self.y, " ");
+        } else {
+            let x = self.x as usize / 4;
+            let y = self.y as usize / 2;
+            self.puzzle[y][x] = n;
+            if n == self.solution[y][x] {
+                plot(self.x, self.y, n);
+            } else {
+                plot(self.x, self.y, n.to_string().red());
+            }
+        }
+    }
+}
+
 fn main() -> Result<()> {
     let mut data = Data {
         x: 2,
@@ -26,8 +63,11 @@ fn main() -> Result<()> {
     stdout().execute(terminal::Clear(terminal::ClearType::All))?;
     draw_grid();
     draw_numbers([[0; 9]; 9]);
-    plot(49, 2, "Welcome to Sudoku");
-    plot(40, 3, "Press Enter to generate a new board");
+    plot(55, 2, "Welcome to Sudoku");
+    plot(46, 3, "Press Enter to generate a new board");
+    plot(40, 5, "Use the Arrow keys or H J K L to move the cursor");
+    plot(41, 6, "Special keys can be used to place numbers too:");
+    plot(50, 7, "Y-P = 1-5 | N-. = 6-9 | ; = 0");
     stdout().execute(cursor::Show)?;
     stdout().execute(cursor::MoveTo(data.x, data.y))?;
     stdout().flush()?;
@@ -36,32 +76,16 @@ fn main() -> Result<()> {
         match read()? {
             Event::Key(event) => match event.code {
                 KeyCode::Backspace => {}
-                KeyCode::Left => {
-                    if data.x > 4 {
-                        data.x -= 4;
-                    }
-                }
                 KeyCode::Enter => {
                     let (puzzle, solution) = gen_puzzle();
                     data.puzzle = puzzle;
                     data.solution = solution;
                     draw_numbers(puzzle);
                 }
-                KeyCode::Right => {
-                    if data.x < 34 {
-                        data.x += 4;
-                    }
-                }
-                KeyCode::Up => {
-                    if data.y > 1 {
-                        data.y -= 2;
-                    }
-                }
-                KeyCode::Down => {
-                    if data.y < 16 {
-                        data.y += 2;
-                    }
-                }
+                KeyCode::Left => data.move_left(),
+                KeyCode::Right => data.move_right(),
+                KeyCode::Up => data.move_up(),
+                KeyCode::Down => data.move_down(),
                 KeyCode::Home => {}
                 KeyCode::End => {}
                 KeyCode::PageUp => {}
@@ -73,17 +97,24 @@ fn main() -> Result<()> {
                 KeyCode::F(_) => {}
                 KeyCode::Char(k) => {
                     if k.is_digit(10) {
-                        if k == '0' {
-                            plot(data.x, data.y, " ");
-                        } else {
-                            let x = data.x as usize / 4;
-                            let y = data.y as usize / 2;
-                            data.puzzle[y][x] = k.to_string().parse::<u8>().unwrap();
-                            if data.puzzle[y][x] == data.solution[y][x] {
-                                plot(data.x, data.y, k);
-                            } else {
-                                plot(data.x, data.y, k.red());
-                            }
+                        data.set_number(k.to_string().parse::<u8>().unwrap());
+                    } else {
+                        match k {
+                            'y' => data.set_number(1),
+                            'u' => data.set_number(2),
+                            'i' => data.set_number(3),
+                            'o' => data.set_number(4),
+                            'p' => data.set_number(5),
+                            'h' => data.move_left(),
+                            'j' => data.move_down(),
+                            'k' => data.move_up(),
+                            'l' => data.move_right(),
+                            ';' => data.set_number(0),
+                            'n' => data.set_number(6),
+                            'm' => data.set_number(7),
+                            ',' => data.set_number(8),
+                            '.' => data.set_number(9),
+                            _ => {}
                         }
                     }
                 }
@@ -93,7 +124,7 @@ fn main() -> Result<()> {
                 }
             },
             Event::Resize(_width, _height) => {}
-            _ => (),
+            Event::Mouse(_event) => {}
         }
         stdout().execute(cursor::MoveTo(data.x, data.y))?;
         stdout().flush()?;
